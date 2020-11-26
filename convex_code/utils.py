@@ -1,6 +1,7 @@
 import glob
 import os
-import pickle
+# import pickle
+import joblib
 
 
 def to_percent(x):
@@ -8,16 +9,16 @@ def to_percent(x):
 
 
 def pickle_it(var, name, directory):
-    with open(os.path.join(directory, "{}.pickle".format(name)), 'wb') as f:
-        pickle.dump(var, f)
+    with open(os.path.join(directory, "{}.joblib".format(name)), 'wb') as f:
+        joblib.dump(var, f)
 
 
 def unpickle_dir(d):
     data = {}
     assert os.path.exists(d), "{} does not exists".format(d)
-    for file in glob.glob(os.path.join(d, '*.pickle')):
-        name = os.path.basename(file)[:-len('.pickle')]
+    for file in glob.glob(os.path.join(d, '*.joblib')):
+        name = os.path.basename(file)[:-len('.joblib')]
         with open(file, 'rb') as f:
-            var = pickle.load(f)
+            var = joblib.load(f)
         data[name] = var
     return data

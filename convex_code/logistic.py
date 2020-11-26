@@ -38,8 +38,13 @@ class LogisticDecentralizedSGD(BaseLogistic):
             W[0, n_cores - 1] = value
             W[n_cores - 1, 0] = value
             return W
-        elif topology == 'centralized':
+        elif topology == 'centralized': # fully-connected AllReduce
             W = np.ones((n_cores, n_cores), dtype=np.float64) / n_cores
+            return W
+        elif topology == 'star':
+            W = np.zeros(n_cores, dtype=np.float64)
+            W[:, 0] = np.ones((n_cores, 1), dtype=np.float64) / n_cores
+            W[0] = np.ones((1, n_cores), dtype=np.float64) / n_cores
             return W
         elif topology == 'disconnected':
             W = np.eye(n_cores)
@@ -60,8 +65,10 @@ class LogisticDecentralizedSGD(BaseLogistic):
     def __init__(self, params: Parameters):
         super().__init__(params)
         self.x = None
-        self.x_estimate = None
+        # self.x_estimate = None
         self.W = self.__create_mixing_matrix(params.topology, params.n_cores)
+        self.z = None # de-biased parameters for PUSHSUM
+        self.w = None # weights for PUSHSUM
 
     def __quantize(self, x):
         # quantize according to quantization function
@@ -70,6 +77,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
             is_biased = (self.params.quantization == 'qsgd-biased')
             assert self.params.num_levels
             q = np.zeros_like(x)
+            print("q.shape", q.shape[1])
             for i in range(0, q.shape[1]):
                 q[:, i] = qsgd_quantize(x[:, i], self.params.num_levels, is_biased)
             return q
@@ -105,11 +113,15 @@ class LogisticDecentralizedSGD(BaseLogistic):
         if self.x is None:
             self.x = np.random.normal(0, INIT_WEIGHT_STD, size=(num_features,))
             self.x = np.tile(self.x, (p.n_cores, 1)).T
-            self.x_estimate = np.copy(self.x)
+            
+            self.z = self.x
+            self.w = np.ones((1, p.n_cores), dtype=np.float64)
+            
+            # self.x_estimate = np.copy(self.x)
             self.x_hat = np.copy(self.x)
-            if p.method == 'old':
-                self.h = np.zeros_like(self.x)
-                alpha = 1. / (A.shape[1] / p.coordinates_to_keep + 1)
+            # if p.method == 'old':
+            #     self.h = np.zeros_like(self.x)
+            #     alpha = 1. / (A.shape[1] / p.coordinates_to_keep + 1)
 
         # splitting data onto machines
         if p.distribute_data:
@@ -169,8 +181,12 @@ class LogisticDecentralizedSGD(BaseLogistic):
                     sample_idx = np.random.choice(indices[machine])
                     a = A[sample_idx]
                     x = self.x[:, machine]
+                    z = self.z[:, machine]
 
-                    minus_grad = y[sample_idx] * a * sigmoid(-y[sample_idx] * a.dot(x).squeeze())
+                    if p.method == "SGP":
+                    	minus_grad = y[sample_idx] * a * sigmoid(-y[sample_idx] * a.dot(z).squeeze())
+                    else:
+                    	minus_grad = y[sample_idx] * a * sigmoid(-y[sample_idx] * a.dot(x).squeeze())
                     if isspmatrix(a):
                         minus_grad = minus_grad.toarray().squeeze(0)
                     if p.regularizer:
@@ -180,6 +196,11 @@ class LogisticDecentralizedSGD(BaseLogistic):
                 # Communication step
                 if p.method == "plain":
                     self.x = (self.x + x_plus).dot(self.W)
+                if p.method == "SGP":
+                    self.x = (self.x + x_plus).dot(self.W)
+                    self.w = self.w.dot(self.W)
+                    self.z = self.x / self.w
+                    # print(self.z.shape)
                 if p.method == "choco":
                     x_plus += self.x
                     self.x = x_plus + p.consensus_lr * self.x_hat.dot(self.W - np.eye(p.n_cores))

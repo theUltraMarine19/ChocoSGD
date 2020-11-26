@@ -29,6 +29,8 @@ class Parameters:
                  real_update_every=1,
                  random_seed=None,
                  split_data_random_seed=None,
+                 A_obj=None,
+                 y_obj=None,
                  ):
         # a lot of sanity checks to fail fast if we have inconsistent parameters
         assert num_epoch >= 0
@@ -59,9 +61,9 @@ class Parameters:
 
         assert n_cores > 0
 
-        assert topology in ['centralized', 'ring', 'torus', 'disconnected']
+        assert topology in ['centralized', 'ring', 'torus', 'disconnected', 'star']
 
-        assert method in ['choco', 'dcd-psgd', 'ecd-psgd', 'plain']
+        assert method in ['choco', 'dcd-psgd', 'ecd-psgd', 'plain', 'SGP']
         if method in ['dcd-psgd', 'ecd-psgd']:
             assert quantization in ['random-unbiased', 'qsgd-unbiased']
 
@@ -90,6 +92,8 @@ class Parameters:
         self.distribute_data = distribute_data
         self.split_data_strategy = split_data_strategy
         self.split_data_random_seed = split_data_random_seed
+        self.A_obj = A_obj
+        self.y_obj = y_obj
 
     def __str__(self):
         if self.name:
