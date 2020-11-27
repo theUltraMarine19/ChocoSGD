@@ -3,7 +3,10 @@ import time
 import numpy as np
 from scipy.sparse import isspmatrix
 from scipy.special import expit as sigmoid
-import multiprocessing as mp
+
+import ray
+# from ray import put, get
+from ray.util.multiprocessing.pool import Pool
 
 from base_logistic import BaseLogistic
 from constants import INIT_WEIGHT_STD, LOSS_PER_EPOCH
@@ -71,6 +74,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
         self.z = None # de-biased parameters for PUSHSUM
         self.w = None # weights for PUSHSUM
 
+
     def __quantize(self, x):
         # quantize according to quantization function
         # x: shape(num_features, n_cores)
@@ -118,6 +122,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
 
         return lr * minus_grad
         # x_plus[:, machine] = lr * minus_grad
+
 
     def fit(self, A, y_init):
         y = np.copy(y_init)
@@ -177,13 +182,16 @@ class LogisticDecentralizedSGD(BaseLogistic):
 
         train_start = time.time()
         np.random.seed(p.random_seed)
-        pool = mp.Pool()
+        
+        ray.init(address="auto")
+        pool = Pool(ray_address='auto')
+                
 
         for epoch in np.arange(p.num_epoch):
             for iteration in range(num_samples_per_machine):
                 t = epoch * num_samples_per_machine + iteration
-                if t % compute_loss_every == 0:
-                # if t % 10 == 0:
+                # if t % compute_loss_every == 0:
+                if t%10 == 0:
                     loss = self.loss(A, y)
                     print('{} t {} epoch {} iter {} loss {} elapsed {}s'.format(p, t,
                         epoch, iteration, loss, time.time() - train_start))
@@ -216,9 +224,9 @@ class LogisticDecentralizedSGD(BaseLogistic):
                 for machine in range(0, p.n_cores):
                     sample_idx = np.random.choice(indices[machine])
                     pool_args.append((machine, A[sample_idx], y[sample_idx], lr))
-                
                 tmp = pool.starmap(self.gradient, pool_args)
-
+                # ray.shutdown()
+                
                 for machine in range(0, p.n_cores):
                     x_plus[:, machine] = tmp[machine]
 
@@ -256,4 +264,6 @@ class LogisticDecentralizedSGD(BaseLogistic):
 
         print("Training took: {}s".format(time.time() - train_start))
 
+        ray.shutdown()
+        
         return losses, all_losses
