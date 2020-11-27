@@ -64,7 +64,7 @@ class Parameters:
 
         assert topology in ['centralized', 'ring', 'torus', 'disconnected', 'partly-connected']
 
-        assert method in ['choco', 'dcd-psgd', 'ecd-psgd', 'plain', 'SGP', 'ea-sgd']
+        assert method in ['choco', 'dcd-psgd', 'ecd-psgd', 'plain', 'SGP', 'ea-sgd', 'ad-psgd']
         if method in ['dcd-psgd', 'ecd-psgd']:
             assert quantization in ['random-unbiased', 'qsgd-unbiased']
 
@@ -80,7 +80,7 @@ class Parameters:
             assert method == 'ea-sgd'
 
         if momentum != None:
-            assert mometum > 0 and momentum < 1
+            assert momentum > 0 and momentum < 1
             assert method in ['SGP', 'ea-sgd']           
 
         self.num_epoch = num_epoch
