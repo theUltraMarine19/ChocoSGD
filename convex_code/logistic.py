@@ -192,7 +192,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
 
         train_start = time.time()
         np.random.seed(p.random_seed)
-        pool = mp.Pool()
+        # pool = mp.Pool()
 
         for epoch in np.arange(p.num_epoch):
             for iteration in range(num_samples_per_machine):
@@ -227,15 +227,16 @@ class LogisticDecentralizedSGD(BaseLogistic):
                 #         minus_grad -= p.regularizer * x
                 #     x_plus[:, machine] = lr * minus_grad
 
-                pool_args = []
+                # pool_args = []
                 for machine in range(0, p.n_cores):
                     sample_idx = np.random.choice(indices[machine])
-                    pool_args.append((machine, A[sample_idx], y[sample_idx], lr))
+                    # pool_args.append((machine, A[sample_idx], y[sample_idx], lr))
+                    x_plus[:, machine] = self.gradient(machine, A[sample_idx], y[sample_idx], lr)
                 
-                tmp = pool.starmap(self.gradient, pool_args)
+                # tmp = pool.starmap(self.gradient, pool_args)
 
-                for machine in range(0, p.n_cores):
-                    x_plus[:, machine] = tmp[machine]
+                # for machine in range(0, p.n_cores):
+                    # x_plus[:, machine] = tmp[machine]
 
                 # Communication step
                 if p.method == "plain":
