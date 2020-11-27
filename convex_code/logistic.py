@@ -42,7 +42,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
         elif topology == 'centralized': # fully-connected AllReduce
             W = np.ones((n_cores, n_cores), dtype=np.float64) / n_cores
             return W
-        elif topology == 'star':
+        elif topology == 'partly-connected': # only node 0 averages gradients from other nodes
             W = np.zeros(n_cores, dtype=np.float64)
             W[:, 0] = np.ones((n_cores, 1), dtype=np.float64) / n_cores
             W[0] = np.ones((1, n_cores), dtype=np.float64) / n_cores
@@ -70,6 +70,10 @@ class LogisticDecentralizedSGD(BaseLogistic):
         self.W = self.__create_mixing_matrix(params.topology, params.n_cores)
         self.z = None # de-biased parameters for PUSHSUM
         self.w = None # weights for PUSHSUM
+        self.u = None # for momentum
+
+        self.transmitted = 0 # No. of bytes transmitted
+
 
     def __quantize(self, x):
         # quantize according to quantization function
@@ -105,17 +109,27 @@ class LogisticDecentralizedSGD(BaseLogistic):
     def gradient(self, machine, a, y, lr):
         x = self.x[:, machine]
         z = self.z[:, machine]
+        u = self.u[:, machine]
         p = self.params
 
         if p.method == "SGP":
             minus_grad = y * a * sigmoid(-y * a.dot(z).squeeze())
+            if p.momentum != None:
+                self.u[:, machine] = self.momentum * u - minus_grad
         else:
-            minus_grad = y * a * sigmoid(-y * a.dot(x).squeeze())
+            if p.momentum:
+                assert p.method == "ea-sgd"
+                self.u[:, machine] = p.momentum * u + lr * (y * a * sigmoid(-y * a.dot(x + self.momentum * u).squeeze()))
+                return self.u[:, machine]
+            else:
+                minus_grad = y * a * sigmoid(-y * a.dot(x).squeeze())
         if isspmatrix(a):
             minus_grad = minus_grad.toarray().squeeze(0)
         if p.regularizer:
             minus_grad -= p.regularizer * x
 
+        if p.method == "SGP" and p.momentum != None:
+            return lr * minus_grad - lr * self.momentum * self.u[:, machine]
         return lr * minus_grad
         # x_plus[:, machine] = lr * minus_grad
 
@@ -133,6 +147,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
             
             self.z = self.x
             self.w = np.ones((1, p.n_cores), dtype=np.float64)
+            self.u = np.zeros(self.x.shape, dtype=np.float64)
             
             # self.x_estimate = np.copy(self.x)
             self.x_hat = np.copy(self.x)
@@ -185,8 +200,8 @@ class LogisticDecentralizedSGD(BaseLogistic):
                 if t % compute_loss_every == 0:
                 # if t % 10 == 0:
                     loss = self.loss(A, y)
-                    print('{} t {} epoch {} iter {} loss {} elapsed {}s'.format(p, t,
-                        epoch, iteration, loss, time.time() - train_start))
+                    print('{}: t = {}, epoch = {}, iter = {}, loss = {}, elapsed = {} s, transmitted = {} bytes'.format(p, t,
+                        epoch, iteration, loss, time.time() - train_start), self.transmitted)
                     all_losses[t // compute_loss_every] = loss
                     if np.isinf(loss) or np.isnan(loss):
                         print("finish trainig")
@@ -224,27 +239,59 @@ class LogisticDecentralizedSGD(BaseLogistic):
 
                 # Communication step
                 if p.method == "plain":
+                    
                     self.x = (self.x + x_plus).dot(self.W)
+                    self.transmitted += x_plus.nbytes
+
+                if p.method == "ea-sgd": # use with centralized topology
+                    
+                    assert self.topology == "centralized"
+                    
+                    if p.comm_period == None: # Sync
+                        self.x = self.x + x_plus - lr * p.elasticity * (self.x  - self.x_hat)
+                        self.x_hat = (1 - p.n_cores * p.elasticity * lr) * self.x_hat + p.n_cores * p.elasticity * lr * self.x.dot(self.W)
+                        self.transmitted += self.x.nbytes
+                    
+                    else: # Async 
+                        tmp_x = self.x
+                        
+                        if t % p.comm_period == 0:
+                            self.x = self.x  - lr * p.elasticity * (tmp_x - self.x_hat)
+                            self.x_hat = self.x_hat + p.elasticity * lr * (tmp_x.dot(self.W) - self.x_hat)
+                            self.transmitted += tmp_x.nbytes
+                        
+                        self.x +=  x_plus                       
+                
                 if p.method == "SGP":
+
                     self.x = (self.x + x_plus).dot(self.W)
                     self.w = self.w.dot(self.W)
                     self.z = self.x / self.w
-                    # print(self.z.shape)
+                    self.transmitted += x_plus.nbytes + self.w.nbytes
+
                 if p.method == "choco":
+
                     x_plus += self.x
                     self.x = x_plus + p.consensus_lr * self.x_hat.dot(self.W - np.eye(p.n_cores))
                     quantized = self.__quantize(self.x - self.x_hat)
                     self.x_hat += quantized
+                    self.transmitted += self.x_hat.nbytes
+
                 elif p.method == 'dcd-psgd':
+
                     x_plus += self.x.dot(self.W)
                     quantized = self.__quantize(x_plus - self.x)
                     self.x += quantized
+                    self.transmitted += self.x.nbytes
+
                 elif p.method == 'ecd-psgd':
+
                     x_plus += self.x_hat.dot(self.W)
                     z = (1 - 0.5 * (t + 1)) * self.x + 0.5 * (t + 1) * x_plus
                     quantized = self.__quantize(z)
                     self.x = np.copy(x_plus)
                     self.x_hat = (1 - 2. / (t + 1)) * self.x_hat + 2./(t + 1) * quantized
+                    self.transmitted += self.x_hat.nbytes
 
                 self.update_estimate(t)
 

@@ -73,7 +73,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
         self.W = self.__create_mixing_matrix(params.topology, params.n_cores)
         self.z = None # de-biased parameters for PUSHSUM
         self.w = None # weights for PUSHSUM
-
+        self.u = None # for momentum
 
     def __quantize(self, x):
         # quantize according to quantization function
@@ -109,10 +109,13 @@ class LogisticDecentralizedSGD(BaseLogistic):
     def gradient(self, machine, a, y, lr):
         x = self.x[:, machine]
         z = self.z[:, machine]
+        u = self.u[:, machine]
         p = self.params
 
         if p.method == "SGP":
             minus_grad = y * a * sigmoid(-y * a.dot(z).squeeze())
+            if p.momentum != None:
+                self.u[:, machine] = self.momentum * u - minus_grad
         else:
             minus_grad = y * a * sigmoid(-y * a.dot(x).squeeze())
         if isspmatrix(a):
@@ -120,6 +123,8 @@ class LogisticDecentralizedSGD(BaseLogistic):
         if p.regularizer:
             minus_grad -= p.regularizer * x
 
+        if p.method == "SGP" and p.momentum != None:
+            return lr * minus_grad - lr * self.momentum * self.u[:, machine]
         return lr * minus_grad
         # x_plus[:, machine] = lr * minus_grad
 
@@ -138,6 +143,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
             
             self.z = self.x
             self.w = np.ones((1, p.n_cores), dtype=np.float64)
+            self.u = np.zeros((1, p.n_cores), dtype=np.float64)
             
             # self.x_estimate = np.copy(self.x)
             self.x_hat = np.copy(self.x)
@@ -190,8 +196,8 @@ class LogisticDecentralizedSGD(BaseLogistic):
         for epoch in np.arange(p.num_epoch):
             for iteration in range(num_samples_per_machine):
                 t = epoch * num_samples_per_machine + iteration
-                # if t % compute_loss_every == 0:
-                if t%10 == 0:
+                if t % compute_loss_every == 0:
+                # if t%10 == 0:
                     loss = self.loss(A, y)
                     print('{} t {} epoch {} iter {} loss {} elapsed {}s'.format(p, t,
                         epoch, iteration, loss, time.time() - train_start))
@@ -265,5 +271,5 @@ class LogisticDecentralizedSGD(BaseLogistic):
         print("Training took: {}s".format(time.time() - train_start))
 
         ray.shutdown()
-        
+
         return losses, all_losses
