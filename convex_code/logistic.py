@@ -128,11 +128,11 @@ class LogisticDecentralizedSGD(BaseLogistic):
         elif p.method == "SGP":
             minus_grad = y * a * sigmoid(-y * a.dot(z).squeeze())
             if p.momentum != None:
-                self.u[:, machine] = self.momentum * u - minus_grad
+                self.u[:, machine] = p.momentum * u - minus_grad
         else:
             if p.momentum:
                 assert p.method == "ea-sgd"
-                self.u[:, machine] = p.momentum * u + lr * (y * a * sigmoid(-y * a.dot(x + self.momentum * u).squeeze()))
+                self.u[:, machine] = p.momentum * u + lr * (y * a * sigmoid(-y * a.dot(x + p.momentum * u).squeeze()))
                 return self.u[:, machine]
             else:
                 minus_grad = y * a * sigmoid(-y * a.dot(x).squeeze())
@@ -142,7 +142,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
             minus_grad -= p.regularizer * x
 
         if p.method == "SGP" and p.momentum != None:
-            return lr * minus_grad - lr * self.momentum * self.u[:, machine]
+            return lr * minus_grad - lr * p.momentum * self.u[:, machine]
         return lr * minus_grad
         # x_plus[:, machine] = lr * minus_grad
 
@@ -213,8 +213,8 @@ class LogisticDecentralizedSGD(BaseLogistic):
                 if t % compute_loss_every == 0:
                 # if t % 10 == 0:
                     loss = self.loss(A, y)
-                    print('{}: t = {}, epoch = {}, iter = {}, loss = {}, elapsed = {} s, transmitted = {} bytes'.format(p, t,
-                        epoch, iteration, loss, time.time() - train_start, self.transmitted))
+                    print('{}: t = {}, epoch = {}, iter = {}, loss = {}, elapsed = {} s, transmitted = {} MiB'.format(p, t,
+                        epoch, iteration, loss, time.time() - train_start, self.transmitted/1e6))
                     all_losses[t // compute_loss_every] = loss
                     if np.isinf(loss) or np.isnan(loss):
                         print("finish trainig")
