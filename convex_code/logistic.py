@@ -81,8 +81,12 @@ class LogisticDecentralizedSGD(BaseLogistic):
         if self.params.quantization in ['qsgd-biased', 'qsgd-unbiased']:
             is_biased = (self.params.quantization == 'qsgd-biased')
             assert self.params.num_levels
-            q = np.zeros_like(x)
-            print("q.shape", q.shape[1])
+            # if self.params.num_levels == 16:
+            #     data_type = np.float4
+            # elif self.params.num_levels == 256:
+            #     data_type = np.float8
+            # print("q.shape", q.shape[1])
+            q = np.zeros_like(x, dtype=np.float16) # 4-bit and 8-bit data types are unavailable
             for i in range(0, q.shape[1]):
                 q[:, i] = qsgd_quantize(x[:, i], self.params.num_levels, is_biased)
             return q
@@ -253,11 +257,25 @@ class LogisticDecentralizedSGD(BaseLogistic):
                 # for machine in range(0, p.n_cores):
                     # x_plus[:, machine] = tmp[machine]
 
+                # Accommodate for changing topology
+                tot_links = np.count_nonzero(self.W)
+                if self.params.coordinates_to_keep:
+                    num_coords = self.params.coordinates_to_keep
+                else:
+                    num_coords = self.x.shape[0]
+                
+                if self.params.num_levels == 16:
+                    bytes_per_gradient = 0.5
+                elif self.params.num_levels == 256:
+                    bytes_per_gradient = 1
+                else:
+                    bytes_per_gradient = 8
+                
                 # Communication step
                 if p.method == "plain":
                     
                     self.x = (self.x + x_plus).dot(self.W)
-                    self.transmitted += x_plus.nbytes
+                    self.transmitted += tot_links * num_coords / self.x.shape[0] * bytes_per_gradient    # Each gradient is of 8 bytes
 
                 elif p.method == "ea-sgd": # use with centralized topology
                     
@@ -266,7 +284,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
                     if p.comm_period == None: # Sync
                         self.x = self.x + x_plus - lr * p.elasticity * (self.x  - self.x_hat)
                         self.x_hat = (1 - p.n_cores * p.elasticity * lr) * self.x_hat + p.n_cores * p.elasticity * lr * self.x.dot(self.W)
-                        self.transmitted += self.x.nbytes
+                        self.transmitted += tot_links * num_coords / self.x.shape[0] * bytes_per_gradient    # Each gradient is of 8 bytes 
                     
                     else: # Async 
                         tmp_x = self.x
@@ -274,7 +292,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
                         if t % p.comm_period == 0:
                             self.x = self.x  - lr * p.elasticity * (tmp_x - self.x_hat)
                             self.x_hat = self.x_hat + p.elasticity * lr * (tmp_x.dot(self.W) - self.x_hat)
-                            self.transmitted += tmp_x.nbytes
+                            self.transmitted += tot_links * num_coords / self.x.shape[0] * bytes_per_gradient    # Each gradient is of 8 bytes        
                         
                         self.x +=  x_plus                       
                 
@@ -283,7 +301,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
                     self.x = (self.x + x_plus).dot(self.W)
                     self.w = self.w.dot(self.W)
                     self.z = self.x / self.w
-                    self.transmitted += x_plus.nbytes + self.w.nbytes
+                    self.transmitted += tot_links * num_coords / self.x.shape[0] * (bytes_per_gradient + 8)    # Each gradient and PUSHSUM weight is of 8 bytes
 
                 elif p.method == "choco":
 
@@ -291,14 +309,14 @@ class LogisticDecentralizedSGD(BaseLogistic):
                     self.x = x_plus + p.consensus_lr * self.x_hat.dot(self.W - np.eye(p.n_cores))
                     quantized = self.__quantize(self.x - self.x_hat)
                     self.x_hat += quantized
-                    self.transmitted += self.x_hat.nbytes
+                    self.transmitted += tot_links * num_coords / self.x.shape[0] * bytes_per_gradient   # Each quantized gradient is of 0.5 / 1 byte
 
                 elif p.method == 'dcd-psgd':
 
                     x_plus += self.x.dot(self.W)
                     quantized = self.__quantize(x_plus - self.x)
                     self.x += quantized
-                    self.transmitted += self.x.nbytes
+                    self.transmitted += tot_links * num_coords / self.x.shape[0] * bytes_per_gradient   # Each quantized gradient is of 0.5 / 1 byte
 
                 elif p.method == 'ecd-psgd':
 
@@ -307,7 +325,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
                     quantized = self.__quantize(z)
                     self.x = np.copy(x_plus)
                     self.x_hat = (1 - 2. / (t + 1)) * self.x_hat + 2./(t + 1) * quantized
-                    self.transmitted += self.x_hat.nbytes
+                    self.transmitted += tot_links * num_coords / self.x.shape[0] * bytes_per_gradient   # Each quantized gradient is of 0.5 / 1 byte
 
                 self.update_estimate(t)
 

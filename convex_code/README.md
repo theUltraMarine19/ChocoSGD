@@ -2,15 +2,27 @@
 
 Code for the main experiments of the paper [Decentralized Stochastic Optimization and Gossip Algorithms with Compressed Communication](https://arxiv.org/abs/1902.00340). 
 
+# Installation
+
+```
+sudo apt-get update
+echo 1 | sudo tee /proc/sys/vm/overcommit_memory
+sudo apt-get install python3-pip
+sudo pip3 install sklearn
+sudo pip3 install networkx
+git clone https://github.com/theUltraMarine19/ChocoSGD.git
+```
+
 ### Datasets and Setup
 
 First you need to download datasets from LIBSVM library and convert them into pickle format. For that from
 ```
-cd data
+mkdir ChocoSGD/data
+cd ChocoSGD/data
 wget -t inf https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/epsilon_normalized.bz2
 wget -t inf https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/rcv1_test.binary.bz2
-cd ../code
-python pickle_datasets.py
+cd ../convex_code
+python3 pickle_datasets.py
 ```
 If you get memory error, you can leave rcv1 dataset in the sparse format, but this would slow down training time.
 
