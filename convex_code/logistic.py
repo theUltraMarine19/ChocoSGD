@@ -217,8 +217,8 @@ class LogisticDecentralizedSGD(BaseLogistic):
                 if t % compute_loss_every == 0:
                 # if t % 10 == 0:
                     loss = self.loss(A, y)
-                    print('{}: t = {}, epoch = {}, iter = {}, loss = {}, elapsed = {} s, transmitted = {} MiB'.format(p, t,
-                        epoch, iteration, loss, time.time() - train_start, self.transmitted/1e6))
+                    print('{}: t = {}, epoch = {}, iter = {}, loss = {}, accuracy = {}, elapsed = {} s, transmitted = {} MiB'.format(p, t,
+                        epoch, iteration, loss, self.score(A, y), time.time() - train_start, self.transmitted/1e6))
                     all_losses[t // compute_loss_every] = loss
                     if np.isinf(loss) or np.isnan(loss):
                         print("finish trainig")
