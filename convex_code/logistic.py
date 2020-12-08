@@ -43,9 +43,9 @@ class LogisticDecentralizedSGD(BaseLogistic):
             W = np.ones((n_cores, n_cores), dtype=np.float64) / n_cores
             return W
         elif topology == 'partly-connected': # only node 0 averages gradients from other nodes
-            W = np.zeros(n_cores, dtype=np.float64)
-            W[:, 0] = np.ones((n_cores, 1), dtype=np.float64) / n_cores
-            W[0] = np.ones((1, n_cores), dtype=np.float64) / n_cores
+            G = networkx.erdos_renyi_graph(n_cores, 0.8)
+            W = networkx.adjacency_matrix(G).toarray()
+            W = W / W.sum(axis=1)[:,None]
             return W
         elif topology == 'disconnected':
             W = np.eye(n_cores)
