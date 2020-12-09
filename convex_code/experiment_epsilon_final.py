@@ -442,35 +442,101 @@ if __name__ == "__main__":
 
 ############## Comparison among all algorithms ###################################
 
-  # # D-PSGD on ring topology (1 round of ring-reduce)
-  # if args.experiment in ['final']:
-  #   params = []
-  #   for random_seed in np.arange(1, n_repeat + 1):
-  #     params += [
-  #               Parameters(name="decentralized-exact", num_epoch=num_epoch,
-  #                          lr_type='decay', initial_lr=0.1, tau=d,
-  #                          regularizer=1 / n, quantization='full',
-  #                          n_cores=n_cores, method='plain',
-  #                          split_data_random_seed=random_seed,
-  #                          distribute_data=True, split_data_strategy=split_name,
-  #                          topology='ring', estimate='final')]
-  #   run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
-  #                  + "/", dataset_path, params, nproc=10)
+  # D-PSGD on ring topology (1 round of ring-reduce)
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="dpgd-top", num_epoch=num_epoch,
+                           lr_type='decay', initial_lr=0.1, tau=d,
+                           regularizer=1 / n, quantization='top',
+                           coordinates_to_keep=20,
+                           n_cores=n_cores, method='plain',
+                           split_data_random_seed=random_seed,
+                           distribute_data=True, split_data_strategy=split_name,
+                           topology='ring', estimate='final')]
+    run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
 
-  # # All-Reduce SGD (Param-server like)
-  # if args.experiment in ['final']:
-  #   params = []
-  #   for random_seed in np.arange(1, n_repeat + 1):
-  #     params += [
-  #               Parameters(name="centralized", num_epoch=num_epoch, 
-  #                          lr_type='decay', initial_lr=0.1, tau=d, 
-  #                          regularizer=1 / n, quantization='full', 
-  #                          n_cores=n_cores, method='plain',
-  #                          split_data_random_seed=random_seed, 
-  #                          distribute_data=True, split_data_strategy=split_name, 
-  #                          topology='centralized', estimate='final')]
-  #   run_experiment("dump/epsilon-final-centralized-" + split_way+ "-" + str(n_cores)\
-  #                  + "/", dataset_path, params, nproc=10)
+  # D-PSGD on ring topology (1 round of ring-reduce)
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="dpsgd-random", num_epoch=num_epoch,
+                           lr_type='decay', initial_lr=0.1, tau=d,
+                           regularizer=1 / n, quantization='random-unbiased',
+                           coordinates_to_keep=20,
+                           n_cores=n_cores, method='plain',
+                           split_data_random_seed=random_seed,
+                           distribute_data=True, split_data_strategy=split_name,
+                           topology='ring', estimate='final')]
+    run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
+
+  # D-PSGD on ring topology (1 round of ring-reduce)
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="dpsgd-qsgd", num_epoch=num_epoch,
+                           lr_type='decay', initial_lr=0.1, tau=d,
+                           regularizer=1 / n, quantization='qsgd-unbiased',
+                           num_levels=16,
+                           n_cores=n_cores, method='plain',
+                           split_data_random_seed=random_seed,
+                           distribute_data=True, split_data_strategy=split_name,
+                           topology='ring', estimate='final')]
+    run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
+
+  # All-Reduce SGD (Param-server like)
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="centralized-random", num_epoch=num_epoch, 
+                           lr_type='decay', initial_lr=0.1, tau=d, 
+                           regularizer=1 / n, quantization='random-unbiased',
+                           coordinates_to_keep=20, 
+                           n_cores=n_cores, method='plain',
+                           split_data_random_seed=random_seed, 
+                           distribute_data=True, split_data_strategy=split_name, 
+                           topology='centralized', estimate='final')]
+    run_experiment("dump/epsilon-final-centralized-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
+
+  # All-Reduce SGD (Param-server like)
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="centralized-top", num_epoch=num_epoch, 
+                           lr_type='decay', initial_lr=0.1, tau=d, 
+                           regularizer=1 / n, quantization='top',
+                           coordinates_to_keep=20, 
+                           n_cores=n_cores, method='plain',
+                           split_data_random_seed=random_seed, 
+                           distribute_data=True, split_data_strategy=split_name, 
+                           topology='centralized', estimate='final')]
+    run_experiment("dump/epsilon-final-centralized-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
+
+  # All-Reduce SGD (Param-server like)
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="centralized-qsgd", num_epoch=num_epoch, 
+                           lr_type='decay', initial_lr=0.1, tau=d, 
+                           regularizer=1 / n, quantization='qsgd-unbiased',
+                           num_levels=16, 
+                           n_cores=n_cores, method='plain',
+                           split_data_random_seed=random_seed, 
+                           distribute_data=True, split_data_strategy=split_name, 
+                           topology='centralized', estimate='final')]
+    run_experiment("dump/epsilon-final-centralized-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
 
   # # EAMSGD on fully-connected topology (Sync)
   # if args.experiment in ['final']:
@@ -520,21 +586,56 @@ if __name__ == "__main__":
   #   run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
   #                  + "/", dataset_path, params, nproc=10)
 
-  # # SGP With momentum on ring topology
-  # if args.experiment in ['final']:
-  #   params = []
-  #   for random_seed in np.arange(1, n_repeat + 1):
-  #     params += [
-  #               Parameters(name="SGP", num_epoch=num_epoch,
-  #                          lr_type='decay', initial_lr=0.1, tau=d,
-  #                          regularizer=1 / n, quantization='full',
-  #                          n_cores=n_cores, method='SGP',
-  #                          momentum=0.9,
-  #                          split_data_random_seed=random_seed,
-  #                          distribute_data=True, split_data_strategy=split_name,
-  #                          topology='ring', estimate='final')]
-  #   run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
-  #                  + "/", dataset_path, params, nproc=10)
+  # SGP With momentum on ring topology
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="SGP-top", num_epoch=num_epoch,
+                           lr_type='decay', initial_lr=0.1, tau=d,
+                           regularizer=1 / n, quantization='top',
+                           coordinates_to_keep=20,
+                           n_cores=n_cores, method='SGP',
+                           momentum=0.9,
+                           split_data_random_seed=random_seed,
+                           distribute_data=True, split_data_strategy=split_name,
+                           topology='ring', estimate='final')]
+    run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
+
+  # SGP With momentum on ring topology
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="SGP-random", num_epoch=num_epoch,
+                           lr_type='decay', initial_lr=0.1, tau=d,
+                           regularizer=1 / n, quantization='random-unbiased',
+                           coordinates_to_keep=20,
+                           n_cores=n_cores, method='SGP',
+                           momentum=0.9,
+                           split_data_random_seed=random_seed,
+                           distribute_data=True, split_data_strategy=split_name,
+                           topology='ring', estimate='final')]
+    run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
+
+   # SGP With momentum on ring topology
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="SGP-qsgd", num_epoch=num_epoch,
+                           lr_type='decay', initial_lr=0.1, tau=d,
+                           regularizer=1 / n, quantization='qsgd-unbiased',
+                           num_levels=16,
+                           n_cores=n_cores, method='SGP',
+                           momentum=0.9,
+                           split_data_random_seed=random_seed,
+                           distribute_data=True, split_data_strategy=split_name,
+                           topology='ring', estimate='final')]
+    run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
 
   # # SGP With momentum on ring topology with different lr
   # if args.experiment in ['final']:
@@ -552,103 +653,142 @@ if __name__ == "__main__":
   #   run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
   #                  + "/", dataset_path, params, nproc=10)
 
-  # # AD-PSGD on ring topology
-  # if args.experiment in ['final']:
-  #   params = []
-  #   for random_seed in np.arange(1, n_repeat + 1):
-  #     params += [
-  #               Parameters(name="AD-PSGD", num_epoch=num_epoch,
-  #                          lr_type='decay', initial_lr=0.1, tau=d,
-  #                          regularizer=1 / n, quantization='full',
-  #                          n_cores=n_cores, method='plain',
-  #                          split_data_random_seed=random_seed,
-  #                          distribute_data=True, split_data_strategy=split_name,
-  #                          topology='ring', estimate='final')]
-  #   run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
-  #                  + "/", dataset_path, params, nproc=10)
+  # AD-PSGD on ring topology
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="AD-PSGD-top", num_epoch=num_epoch,
+                           lr_type='decay', initial_lr=0.1, tau=d,
+                           regularizer=1 / n, quantization='top',
+                           coordinates_to_keep=20,
+                           n_cores=n_cores, method='ad-psgd',
+                           split_data_random_seed=random_seed,
+                           distribute_data=True, split_data_strategy=split_name,
+                           topology='ring', estimate='final')]
+    run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
+
+  # AD-PSGD on ring topology
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="AD-PSGD-random", num_epoch=num_epoch,
+                           lr_type='decay', initial_lr=0.1, tau=d,
+                           regularizer=1 / n, quantization='random=unbiased',
+                           coordinates_to_keep=20,
+                           n_cores=n_cores, method='ad-psgd',
+                           split_data_random_seed=random_seed,
+                           distribute_data=True, split_data_strategy=split_name,
+                           topology='ring', estimate='final')]
+    run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
+
+  # AD-PSGD on ring topology
+  if args.experiment in ['final']:
+    params = []
+    for random_seed in np.arange(1, n_repeat + 1):
+      params += [
+                Parameters(name="AD-PSGD-qsgd", num_epoch=num_epoch,
+                           lr_type='decay', initial_lr=0.1, tau=d,
+                           regularizer=1 / n, quantization='qsgd-unbiased',
+                           num_levels=16,
+                           n_cores=n_cores, method='ad-psgd',
+                           split_data_random_seed=random_seed,
+                           distribute_data=True, split_data_strategy=split_name,
+                           topology='ring', estimate='final')]
+    run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+                   + "/", dataset_path, params, nproc=10)
 
 
 ############################# Topo and #workers ###################################
 
-  for topo in ['centralized', 'ring', 'torus', 'disconnected', 'partly-connected']:
-    for workers in [9, 16, 25, 36]:
+  # for topo in ['centralized', 'ring', 'torus', 'disconnected', 'partly-connected']:
+  #   for workers in [9, 16, 25, 36]:
 
-      # D-PSGD on ring topology (1 round of ring-reduce)
-      if args.experiment in ['final']:
-        params = []
-        for random_seed in np.arange(1, n_repeat + 1):
-          params += [
-                    Parameters(name="dpsgd-exact-"+topo+str(workers)+"-", num_epoch=num_epoch,
-                               lr_type='decay', initial_lr=0.1, tau=d,
-                               regularizer=1 / n, quantization='full',
-                               n_cores=workers, method='plain',
-                               split_data_random_seed=random_seed,
-                               distribute_data=True, split_data_strategy=split_name,
-                               topology=topo, estimate='final')]
-        run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
-                       + "/", dataset_path, params, nproc=10)
+  #     # D-PSGD on ring topology (1 round of ring-reduce)
+  #     if args.experiment in ['final']:
+  #       params = []
+  #       for random_seed in np.arange(1, n_repeat + 1):
+  #         params += [
+  #                   Parameters(name="dpsgd-exact-"+topo+str(workers)+"-", num_epoch=num_epoch,
+  #                              lr_type='decay', initial_lr=0.1, tau=d,
+  #                              regularizer=1 / n, quantization='full',
+  #                              n_cores=workers, method='plain',
+  #                              split_data_random_seed=random_seed,
+  #                              distribute_data=True, split_data_strategy=split_name,
+  #                              topology=topo, estimate='final')]
+  #       run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+  #                      + "/", dataset_path, params, nproc=10)
 
-      # ChocoSGD with 4-bit biased quantization
-      if args.experiment in ['final']:
-        params = []
-        for random_seed in np.arange(1, n_repeat + 1):
-          params += [
-                    Parameters(name="Choco-qsgd-"+topo+str(workers)+"-", num_epoch=num_epoch, 
-                              lr_type='decay', initial_lr=0.1, tau=d, 
-                              regularizer=1 / n, quantization='qsgd-biased', 
-                              consensus_lr=0.34, num_levels=16, 
-                              n_cores=workers, method='choco', 
-                              split_data_random_seed=random_seed, 
-                              distribute_data=True, split_data_strategy=split_name,
-                              topology=topo, estimate='final')]
-        run_experiment("dump/epsilon-final-choco-qsgd-4bit-" + split_way + "-" + str(n_cores) + "/",
-                       dataset_path, params, nproc=10)
+  #     # ChocoSGD with 4-bit biased quantization
+  #     if args.experiment in ['final']:
+  #       params = []
+  #       for random_seed in np.arange(1, n_repeat + 1):
+  #         params += [
+  #                   Parameters(name="Choco-qsgd-"+topo+str(workers)+"-", num_epoch=num_epoch, 
+  #                             lr_type='decay', initial_lr=0.1, tau=d, 
+  #                             regularizer=1 / n, quantization='qsgd-biased', 
+  #                             consensus_lr=0.34, num_levels=16, 
+  #                             n_cores=workers, method='choco', 
+  #                             split_data_random_seed=random_seed, 
+  #                             distribute_data=True, split_data_strategy=split_name,
+  #                             topology=topo, estimate='final')]
+  #       run_experiment("dump/epsilon-final-choco-qsgd-4bit-" + split_way + "-" + str(n_cores) + "/",
+  #                      dataset_path, params, nproc=10)
 
-      # ChocoSGD with random-biased 1%
-      if args.experiment in ['final']:
-        params = []
-        for random_seed in np.arange(1, n_repeat + 1):
-          params += [
-                    Parameters(name="Choco-random-"+topo+str(workers)+"-", num_epoch=num_epoch, 
-                               lr_type='decay', initial_lr=0.1, tau=d, 
-                               regularizer=1 / n, quantization='random-biased', 
-                               consensus_lr=0.01, coordinates_to_keep=20, 
-                               n_cores=workers, method='choco',
-                               split_data_random_seed=random_seed, 
-                               distribute_data=True, split_data_strategy=split_name, 
-                               topology=topo, estimate='final',
-                               random_seed=60 + random_seed)]
-        run_experiment("dump/epsilon-final-choco-random-20-" + split_way+ "-" + str(n_cores) + "/",
-              dataset_path, params, nproc=10)
+  #     # ChocoSGD with random-biased 1%
+  #     if args.experiment in ['final']:
+  #       params = []
+  #       for random_seed in np.arange(1, n_repeat + 1):
+  #         params += [
+  #                   Parameters(name="Choco-random-"+topo+str(workers)+"-", num_epoch=num_epoch, 
+  #                              lr_type='decay', initial_lr=0.1, tau=d, 
+  #                              regularizer=1 / n, quantization='random-biased', 
+  #                              consensus_lr=0.01, coordinates_to_keep=20, 
+  #                              n_cores=workers, method='choco',
+  #                              split_data_random_seed=random_seed, 
+  #                              distribute_data=True, split_data_strategy=split_name, 
+  #                              topology=topo, estimate='final',
+  #                              random_seed=60 + random_seed)]
+  #       run_experiment("dump/epsilon-final-choco-random-20-" + split_way+ "-" + str(n_cores) + "/",
+  #             dataset_path, params, nproc=10)
 
-      # SGP With momentum
-      if args.experiment in ['final']:
-        params = []
-        for random_seed in np.arange(1, n_repeat + 1):
-          params += [
-                    Parameters(name="SGP-"+topo+str(workers)+"-", num_epoch=num_epoch,
-                               lr_type='decay', initial_lr=0.1, tau=d,
-                               regularizer=1 / n, quantization='full',
-                               n_cores=workers, method='SGP',
-                               momentum=0.9,
-                               split_data_random_seed=random_seed,
-                               distribute_data=True, split_data_strategy=split_name,
-                               topology=topo, estimate='final')]
-        run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
-                       + "/", dataset_path, params, nproc=10)
+  #     # SGP With momentum
+  #     if args.experiment in ['final']:
+  #       params = []
+  #       for random_seed in np.arange(1, n_repeat + 1):
+  #         params += [
+  #                   Parameters(name="SGP-"+topo+str(workers)+"-", num_epoch=num_epoch,
+  #                              lr_type='decay', initial_lr=0.1, tau=d,
+  #                              regularizer=1 / n, quantization='full',
+  #                              n_cores=workers, method='SGP',
+  #                              momentum=0.9,
+  #                              split_data_random_seed=random_seed,
+  #                              distribute_data=True, split_data_strategy=split_name,
+  #                              topology=topo, estimate='final')]
+  #       run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+  #                      + "/", dataset_path, params, nproc=10)
 
-      # AD-PSGD
-      if args.experiment in ['final']:
-        params = []
-        for random_seed in np.arange(1, n_repeat + 1):
-          params += [
-                    Parameters(name="AD-PSGD-"+topo+str(workers)+"-", num_epoch=num_epoch,
-                               lr_type='decay', initial_lr=0.1, tau=d,
-                               regularizer=1 / n, quantization='full',
-                               n_cores=workers, method='plain',
-                               split_data_random_seed=random_seed,
-                               distribute_data=True, split_data_strategy=split_name,
-                               topology=topo, estimate='final')]
-        run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
-                       + "/", dataset_path, params, nproc=10)
+  #     # AD-PSGD
+      # if args.experiment in ['final']:
+      #   params = []
+      #   for random_seed in np.arange(1, n_repeat + 1):
+      #     params += [
+      #               Parameters(name="AD-PSGD-"+topo+str(workers)+"-", num_epoch=num_epoch,
+      #                          lr_type='decay', initial_lr=0.1, tau=d,
+      #                          regularizer=1 / n, quantization='full',
+      #                          n_cores=workers, method='ad-psgd',
+      #                          split_data_random_seed=random_seed,
+      #                          distribute_data=True, split_data_strategy=split_name,
+      #                          topology=topo, estimate='final')]
+      #   run_experiment("dump/epsilon-final-decentralized-ring-" + split_way+ "-" + str(n_cores)\
+      #                  + "/", dataset_path, params, nproc=10)
+
+
+
+
+
+
 

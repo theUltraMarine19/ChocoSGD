@@ -116,6 +116,18 @@ class LogisticDecentralizedSGD(BaseLogistic):
         u = self.u[:, machine]
         p = self.params
 
+        if self.params.coordinates_to_keep:
+            num_coords = self.params.coordinates_to_keep
+        else:
+            num_coords = self.x.shape[0]
+        
+        if self.params.num_levels == 16:
+            bytes_per_gradient = 0.5
+        elif self.params.num_levels == 256:
+            bytes_per_gradient = 1
+        else:
+            bytes_per_gradient = 8
+
         if p.method == "ad-psgd":
             minus_grad = y * a * sigmoid(-y * a.dot(x).squeeze())
             if isspmatrix(a):
@@ -123,8 +135,8 @@ class LogisticDecentralizedSGD(BaseLogistic):
             if p.regularizer:
                 minus_grad -= p.regularizer * x
 
-            tmp_x = self.x.dot(self.W)
-            self.transmitted += self.x.nbytes
+            tmp_x = self.__quantize(self.x).dot(self.W)
+            self.transmitted += num_coords / self.x.shape[0] * bytes_per_gradient
             tmp_x[:, machine] += minus_grad
             self.x = tmp_x
             return minus_grad # return value doesn't matter, will never be used
@@ -274,7 +286,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
                 # Communication step
                 if p.method == "plain":
                     
-                    self.x = (self.x + x_plus).dot(self.W)
+                    self.x = (self.x + self.__quantize(x_plus)).dot(self.W)
                     self.transmitted += tot_links * num_coords / self.x.shape[0] * bytes_per_gradient    # Each gradient is of 8 bytes
 
                 elif p.method == "ea-sgd": # use with centralized topology
@@ -298,7 +310,7 @@ class LogisticDecentralizedSGD(BaseLogistic):
                 
                 elif p.method == "SGP":
 
-                    self.x = (self.x + x_plus).dot(self.W)
+                    self.x = (self.x + self.__quantize(x_plus)).dot(self.W)
                     self.w = self.w.dot(self.W)
                     self.z = self.x / self.w
                     self.transmitted += tot_links * num_coords / self.x.shape[0] * (bytes_per_gradient + 8)    # Each gradient and PUSHSUM weight is of 8 bytes
