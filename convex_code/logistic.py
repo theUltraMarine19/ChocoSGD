@@ -135,10 +135,12 @@ class LogisticDecentralizedSGD(BaseLogistic):
             if p.regularizer:
                 minus_grad -= p.regularizer * x
 
-            tmp_x = self.__quantize(self.x).dot(self.W)
+            tmp_x = self.__quantize(self.x).dot(self.W[:, machine])
+            # tmp_x = self.x.dot(self.W[:, machine])
             self.transmitted += num_coords / self.x.shape[0] * bytes_per_gradient
-            tmp_x[:, machine] += minus_grad
-            self.x = tmp_x
+            # self.transmitted += 8
+            tmp_x += minus_grad
+            self.x[:, machine] = tmp_x
             return minus_grad # return value doesn't matter, will never be used
 
         elif p.method == "SGP":
